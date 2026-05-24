@@ -10,4 +10,4 @@
     - name: Show uptime output
       debug:
         msg: "{{ inventory_hostname }} - {{ uptime_result.stdout }}"
-
+#donw tiksdjflajfldsa
