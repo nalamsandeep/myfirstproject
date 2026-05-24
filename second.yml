@@ -11,3 +11,5 @@
   tasks: 
     - name: ensure latest update 
         yum:
+          name: '*'
+          state: latest
