@@ -1,0 +1,32 @@
+---
+- name: Update System Timezone
+  hosts: all
+  become: true
+  vars:
+    # Set your desired timezone here (e.g., "America/New_York", "UTC", "Europe/London")
+    target_timezone: "America/New_York"
+
+  tasks:
+    - name: Set system timezone to {{ target_timezone }}
+      ansible.builtin.timezone:
+        name: "{{ target_timezone }}"
+      register: timezone_changed
+
+    # Highly recommended: Restart cron and rsyslog if the timezone changes 
+    # to ensure system logs and cron schedules immediately respect the new time.
+    - name: Restart rsyslog to apply new timezone to logs
+      ansible.builtin.service:
+        name: rsyslog
+        state: restarted
+      when: timezone_changed.changed
+      ignore_errors: true  # Prevents failure on systems that use different logging daemons
+
+    - name: Restart cron daemon to apply new timezone to schedules
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: restarted
+      loop:
+        - cron
+        - crond
+      when: timezone_changed.changed
+      ignore_errors: true  # Loops through common names; ignores whichever doesn't exist
