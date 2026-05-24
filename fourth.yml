@@ -1,0 +1,33 @@
+---
+- name: Manage Linux Cron Jobs
+  hosts: all
+  become: true  # Runs as root, required if modifying other users' crontabs
+  vars:
+    cron_user: "root"
+
+  tasks:
+    - name: Ensure a specific cron job exists and is updated
+      ansible.builtin.cron:
+        name: "Run nightly backup script"
+        user: "{{ cron_user }}"
+        minute: "0"
+        hour: "2"
+        day: "*"
+        month: "*"
+        weekday: "*"
+        job: "/usr/local/bin/backup.sh > /dev/null 2>&1"
+        state: present
+
+    - name: Example of a special time cron job (e.g., @reboot)
+      ansible.builtin.cron:
+        name: "Start custom service on boot"
+        user: "{{ cron_user }}"
+        special_time: "reboot"
+        job: "/usr/local/bin/start_service.sh"
+        state: present
+
+    - name: Remove an old or obsolete cron job
+      ansible.builtin.cron:
+        name: "Old cleanup script"
+        user: "{{ cron_user }}"
+        state: absent
