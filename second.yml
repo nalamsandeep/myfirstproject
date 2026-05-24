@@ -6,4 +6,8 @@
       yum:
         name: '*'
         state: latest
-
+- name: Hardening 
+  hosts: webservers 
+  tasks: 
+    - name: ensure latest update 
+        yum:
