@@ -1,0 +1,53 @@
+---
+- name: Configure NFS Server and Client Entries
+  hosts: all
+  become: true
+  vars:
+    nfs_server_ip: "192.168.1.50"
+    export_path: "/mnt/shared_data"
+    client_mount_path: "/mnt/nfs_client"
+
+  tasks:
+    # ==========================================
+    # SERVER-SIDE CONFIGURATION (/etc/exports)
+    # ==========================================
+    - name: Ensure the directory to be exported exists on Server
+      ansible.builtin.file:
+        path: "{{ export_path }}"
+        state: directory
+        mode: '0777'   # Adjust permissions according to your security policy
+      when: "'nfs_servers' in group_names"
+
+    - name: Update /etc/exports with the new share configuration
+      ansible.builtin.lineinfile:
+        path: /etc/exports
+        # This regex looks for an existing line starting with your export path
+        regexp: "^{{ export_path }}\\s"
+        line: "{{ export_path }} 192.168.1.0/24(rw,sync,no_subtree_check,no_root_squash)"
+        state: present
+      register: nfs_exports_updated
+      when: "'nfs_servers' in group_names"
+
+    - name: Apply new NFS exports immediately
+      ansible.builtin.command: exportfs -ra
+      when: "'nfs_servers' in group_names" and nfs_exports_updated.changed
+
+    # ==========================================
+    # CLIENT-SIDE CONFIGURATION (/etc/fstab)
+    # ==========================================
+    - name: Ensure the local mount point directory exists on Client
+      ansible.builtin.file:
+        path: "{{ client_mount_path }}"
+        state: directory
+        mode: '0755'
+      when: "'nfs_clients' in group_names"
+
+    - name: Update /etc/fstab and mount the NFS share on Client
+      ansible.posix.mount:
+        path: "{{ client_mount_path }}"
+        src: "{{ nfs_server_ip }}:{{ export_path }}"
+        fstype: nfs
+        # Common production mount options
+        opts: "rw,sync,hard,intr,rsize=32768,wsize=32768"
+        state: mounted  # 'mounted' adds it to fstab AND mounts it immediately
+      when: "'nfs_clients' in group_names"
