@@ -1,0 +1,13 @@
+# uptime.yml
+- name: Collect uptime from servers
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Run uptime command
+      command: uptime
+      register: uptime_result
+
+    - name: Show uptime output
+      debug:
+        msg: "{{ inventory_hostname }} - {{ uptime_result.stdout }}"
+
